@@ -1,0 +1,36 @@
+```{r Prepare workspace, message=FALSE, warning=FALSE}
+#Loading packages
+
+library(here)
+library(tidyverse, quietly = TRUE)
+library(lubridate)
+library(dplyr)
+
+#Setting relative file path
+here()
+getwd()
+
+```
+
+```{r}
+#Loading CSV flood data files
+LAFloods90to99 <- read.csv("~/FinalProject/RawData/LAFloods90to99.csv", stringsAsFactors = TRUE)
+LAFloods00to05 <- read.csv("~/FinalProject/RawData/LAFloods00to05.csv", stringsAsFactors = TRUE)
+LAFloods06to10 <- read.csv("~/FinalProject/RawData/LAFloods06to10.csv", stringsAsFactors = TRUE)
+LAFloods11to15 <- read.csv("~/FinalProject/RawData/LAFloods11to15.csv", stringsAsFactors = TRUE)
+LAFloods16to17 <- read.csv("~/FinalProject/RawData/LAFloods16to17.csv", stringsAsFactors = TRUE)
+LAFloods18to20 <- read.csv("~/FinalProject/RawData/LAFloods18to20.csv", stringsAsFactors = TRUE)
+LAFloods21to22 <- read.csv("~/FinalProject/RawData/LAFloods21to22.csv", stringsAsFactors = TRUE)
+
+#Creating a single data frame
+FloodData <- rbind(LAFloods90to99, LAFloods00to05, LAFloods06to10, LAFloods11to15, LAFloods16to17, LAFloods18to20, LAFloods21to22)
+
+#Selecting relevant columns
+FloodData <- select(FloodData, BEGIN_LOCATION, BEGIN_DATE, BEGIN_TIME, EVENT_TYPE, DAMAGE_PROPERTY_NUM, FLOOD_CAUSE, END_DATE, END_TIME)
+
+#Using lubridate to recognize date and time columns as such
+FloodData$BEGIN_DATE <- as.Date(FloodData$BEGIN_DATE, format = "%m/%d/%Y")
+FloodData$END_DATE <- as.Date(FloodData$END_DATE, format = "%m/%d/%Y")
+
+```
+
