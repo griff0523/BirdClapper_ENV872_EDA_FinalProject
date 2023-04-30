@@ -28,9 +28,16 @@ FloodData <- rbind(LAFloods90to99, LAFloods00to05, LAFloods06to10, LAFloods11to1
 #Selecting relevant columns
 FloodData <- select(FloodData, BEGIN_LOCATION, BEGIN_DATE, BEGIN_TIME, EVENT_TYPE, DAMAGE_PROPERTY_NUM, FLOOD_CAUSE, END_DATE, END_TIME)
 
+#Making time columns uniform format (HH:MM), adding 0s in front of 3 digit entries (H:MM)
+FloodData$BEGIN_TIME <- formatC(FloodData$BEGIN_TIME, width=4, format="d", flag="0")
+FloodData$END_TIME <- formatC(FloodData$END_TIME, width=4, format="d", flag="0")
+
 #Using lubridate to recognize date and time columns as such
-FloodData$BEGIN_DATE <- as.Date(FloodData$BEGIN_DATE, format = "%m/%d/%Y")
-FloodData$END_DATE <- as.Date(FloodData$END_DATE, format = "%m/%d/%Y")
+FloodData$StartDate <- mdy_hm(paste(FloodData$BEGIN_DATE, FloodData$BEGIN_TIME))
+FloodData$EndDate <- mdy_hm(paste(FloodData$END_DATE, FloodData$END_TIME))
+
+#Creating column with flood duration
+FloodData$Duration <- difftime(FloodData$EndDate, FloodData$StartDate, units="hours")
 
 ```
 
