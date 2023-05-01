@@ -26,18 +26,28 @@ LAFloods21to22 <- read.csv("~/FinalProject/RawData/LAFloods21to22.csv", stringsA
 FloodData <- rbind(LAFloods90to99, LAFloods00to05, LAFloods06to10, LAFloods11to15, LAFloods16to17, LAFloods18to20, LAFloods21to22)
 
 #Selecting relevant columns
-FloodData <- select(FloodData, BEGIN_LOCATION, BEGIN_DATE, BEGIN_TIME, EVENT_TYPE, DAMAGE_PROPERTY_NUM, FLOOD_CAUSE, END_DATE, END_TIME)
+FloodData <- select(FloodData, CZ_NAME_STR, BEGIN_LOCATION, BEGIN_LAT, BEGIN_LON, EVENT_TYPE, DAMAGE_PROPERTY_NUM, FLOOD_CAUSE, BEGIN_DATE, BEGIN_TIME, END_DATE, END_TIME)
 
 #Making time columns uniform format (HH:MM), adding 0s in front of 3 digit entries (H:MM)
 FloodData$BEGIN_TIME <- formatC(FloodData$BEGIN_TIME, width=4, format="d", flag="0")
 FloodData$END_TIME <- formatC(FloodData$END_TIME, width=4, format="d", flag="0")
 
-#Using lubridate to recognize date and time columns as such
+#Creating datetime columns
 FloodData$StartDate <- mdy_hm(paste(FloodData$BEGIN_DATE, FloodData$BEGIN_TIME))
 FloodData$EndDate <- mdy_hm(paste(FloodData$END_DATE, FloodData$END_TIME))
+
+#Recognizing date and time columns as date and time format
+FloodData$BEGIN_DATE <- as.Date(FloodData$BEGIN_DATE, format = "%m/%d/%Y")
+FloodData$END_DATE <- as.Date(FloodData$END_DATE, format = "%m/%d/%Y")
+FloodData$StartDate <- strptime(FloodData$StartDate, format = "%Y-%m-%d %H:%M")
+FloodData$EndDate <- strptime(FloodData$EndDate, format = "%Y-%m-%d %H:%M")
 
 #Creating column with flood duration
 FloodData$Duration <- difftime(FloodData$EndDate, FloodData$StartDate, units="hours")
 
+#Creating month, year, and month-year column
+FloodData$Month<- format(as.Date(FloodData$StartDate, format="%Y-%m-%d %H:%M"),"%m")
+FloodData$MonthYear<- format(as.Date(FloodData$StartDate, format="%Y-%m-%d %H:%M"),"%m-%Y")
+FloodData$Year<- format(as.Date(FloodData$StartDate, format="%Y-%m-%d %H:%M"),"%Y")
 ```
 
