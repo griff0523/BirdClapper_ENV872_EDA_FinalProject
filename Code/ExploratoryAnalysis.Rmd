@@ -38,8 +38,25 @@ head(flood_data)
 
 ```
 
+```{r}
 
-```{r filter data}
+# Convert END_DATE from factor to character
+flood_data$END_DATE <- as.character(flood_data$END_DATE)
 
-duration_data<- flood_data%>%
-  select()
+flood_data$END_DATE <- as.Date(paste0(flood_data$END_DATE, "-01"), format="%Y-%m-%d")
+
+class(flood_data$END_DATE)
+
+```
+
+```{r plot flood duration vs month-year}
+
+ggplot(flood_data, aes(x = END_DATE, y = Duration, color = Duration)) +
+   geom_line() +
+  scale_color_gradient(low = "blue", high = "orange") +
+  scale_y_log10() +
+  labs(x = "Date", y = "Flood Duration (hours)", title = "Flood Duration in Louisiana (1996-2022)", color = "Duration")+
+  ylim(0, 800)
+
+```
+
