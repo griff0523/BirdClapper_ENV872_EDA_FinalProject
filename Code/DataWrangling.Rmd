@@ -61,3 +61,11 @@ write.csv(FloodData, "~/FinalProject/ProcessedData/FloodData.csv", row.names = F
 
 ```
 
+```{r}
+#Creating table describing dataset
+DatasetInfo <- data.frame(Detail=c('Data Source', 'Retrieved From', 'Variables', 'Date Range'), 
+                          Description=c('NOAA Storm Events Database', 'https://www.ncdc.noaa.gov/stormevents/', 'County/Parish, Latitude & Longitude, Event Type, Flood Cause, Start date and time, End date and time', '1950 - 2023'))
+print(DatasetInfo)
+```
+
+
