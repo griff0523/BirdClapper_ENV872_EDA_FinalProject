@@ -10,10 +10,22 @@ library(ggthemes)
 library(zoo)
 library(trend)
 library(Kendall)
+library(ggfortify)
 
 #Setting working directory
 here
 getwd()
+
+mytheme <- theme_wsj() + theme(plot.title = element_text(hjust = 0.5), 
+   panel.grid.minor = element_line(color = 2,
+   size = 0.25,
+   linetype = 1),
+  legend.position = "bottom", 
+  axis.text = element_text(face="plain", size = 12),
+  axis.title=element_text(size=14),
+  title = element_text(size=12))
+
+theme_set(mytheme)
 
 ```
 ```{r}
@@ -47,6 +59,17 @@ FloodData_Interp <- FloodData.all.months %>%
   mutate(Duration.Mean = na.approx(Duration.Mean, na.rm=FALSE))
 
 ```
+```{r}
+monthly.FloodData.plot <- ggplot(FloodData_Interp, aes(x = Date, y = Duration.Mean)) + 
+  labs(title = "Average Monthly Flood Duration in Louisiana",
+       x = "Year",
+       y = "Flood Duraton (Hours)") +
+   ylim(c(0, 100)) +
+  geom_smooth(method = lm, color = "black") +
+  geom_line()
+
+print(monthly.FloodData.plot)
+```
 
 ```{r}
 #Creating time series object
@@ -70,7 +93,15 @@ FloodData.monthly.ts.nonseasonal <- (FloodData.ts - FloodData.monthly.ts.Compone
 
 MannKendall(FloodData.monthly.ts.nonseasonal)
 
-plot(FloodData.monthly.ts.nonseasonal)
+```
+```{r}
+autoplot(FloodData.monthly.ts.nonseasonal) + 
+  labs(title = "Nonseasonal Average Monthly Flood Duration in Louisiana",
+       x = "Year",
+       y = "Flood Duraton (Hours)") +
+   ylim(c(0, 100))
+  
 
 ```
+
 
