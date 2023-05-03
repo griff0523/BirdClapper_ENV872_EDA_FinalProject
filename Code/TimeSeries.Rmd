@@ -58,4 +58,19 @@ FloodData.ts_decomposed <- stl(FloodData.ts, s.window="periodic")
 #Plotting decomoposed flood data
 plot(FloodData.ts_decomposed)
 ```
+```{r}
+smk.test(FloodData.ts)
+```
+
+
+```{r}
+FloodData.monthly.ts.Components <- as.data.frame(FloodData.ts_decomposed$time.series)
+
+FloodData.monthly.ts.nonseasonal <- (FloodData.ts - FloodData.monthly.ts.Components$seasonal)
+
+MannKendall(FloodData.monthly.ts.nonseasonal)
+
+plot(FloodData.monthly.ts.nonseasonal)
+
+```
 
