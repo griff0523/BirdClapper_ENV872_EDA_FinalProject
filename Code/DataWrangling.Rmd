@@ -45,9 +45,19 @@ FloodData$EndDate <- strptime(FloodData$EndDate, format = "%Y-%m-%d %H:%M")
 #Creating column with flood duration
 FloodData$Duration <- difftime(FloodData$EndDate, FloodData$StartDate, units="hours")
 
-#Creating month, year, and month-year column
+#Creating month and year columns
 FloodData$Month<- format(as.Date(FloodData$StartDate, format="%Y-%m-%d %H:%M"),"%m")
-FloodData$MonthYear<- format(as.Date(FloodData$StartDate, format="%Y-%m-%d %H:%M"),"%m-%Y")
+FloodData$MonthYear<- format(as.Date(FloodData$StartDate, format="%Y-%m-%d %H:%M"),"%Y %m")
 FloodData$Year<- format(as.Date(FloodData$StartDate, format="%Y-%m-%d %H:%M"),"%Y")
+
+#Creating month year columns
+FloodData <- FloodData %>%
+  mutate(MonthYear = as.Date(as.yearmon(paste(Year, Month), "%Y %m")))
+```
+
+```{r}
+#Exporting CSV
+write.csv(FloodData, "~/FinalProject/ProcessedData/FloodData.csv", row.names = FALSE)
+
 ```
 
