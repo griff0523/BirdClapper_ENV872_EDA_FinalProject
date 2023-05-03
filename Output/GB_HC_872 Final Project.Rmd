@@ -20,6 +20,20 @@
 
 # Rationale and Research Questions
 
+**Background**
+
+The Gulf Coast of the United States is comprised of five states: Texas, Louisiana, Mississippi, Alabama, and Florida. This region is one of the most vulnerable in the nation to extreme weather, mainly hurricanes and other major storms. For most of the Gulf Coast, the land is low-lying and, in some cases, subsiding, such as in the case of New Orleans (source). Thus, events like hurricanes and even less extreme events have led to devastating flooding and significant economic losses for the region, including property damage and destruction. 
+
+*Temporal Effects of Climate Change*
+
+As climate change progresses, average global temperatures, including sea temperatures, are rising. It is likely that these conditions set the stage for storms of increasing magnitude as conditions worsen. One study on hurricane climate attribution developed a power dissipation index (PDI) to measure the rate at which storms’ power dissipates (i.e., loses strength). Overall, the study found that increasing sea surface temperature (SST) is highly associated with slower power dissipation, leading to the more frequent landfall of stronger storms (Emanuel, 2005). The overall frequency of these storms is not necessarily increasing due to the effects of climate change, rather the frequency of high-magnitude storms is increasing. This poses a significant risk for Gulf states, and as they prepare for and adapt to these evolving storm patterns, it is important for them to consider how relationships between flood events and economic losses are also evolving.
+
+*Main Research Questions*
+
+In our study, we seek to uncover temporal relationships between flood events along the Gulf Coast and resulting property damage. For this study, we will evaluate flood events and associated property damage in the period of 1996-2022 in the Gulf Coast region. With these parameters, our main research questions are:
+
+1. Has there been an average increase in flood duration in Louisiana from 1996 - 2022?
+2. Has there been an average increase in flood-related property damage in Louisiana between 1996 - 2022?
 
 
 \newpage
@@ -32,7 +46,139 @@
 
 # Exploratory Analysis 
 
+For exploratory analysis of the flood data, we created two plots. First, a plot illustrating flood duration over time in Louisiana from 1996-2022. The second plot was intended to show the location of flood events across Louisiana for this same time period, scaling them by flood duration in hours. 
 
+However, due to discrepancies between the flood data and shapefile of Louisiana, the coordinates in each did not successfully layer together to create this plot. Instead, we include 1) a map of Louisiana using the shapefile, 2) a map plotting flood location, scaled according to duration, and finally 3) the code we attempted to layer the two.
+
+*Figure 1. Flood duration over time in Louisiana (1996-2022).*
+```{r libraries}
+
+library(tidyverse)
+library(lubridate)
+library(here)
+library(ggplot2)
+
+getwd()
+
+```
+
+```{r import flood data}
+
+#Assign a variable to the processed data folder location
+processed_data = "Output/ProcessedData_KEY"
+
+flood_data <- read.csv(file=here("./ProcessedData/FloodData.csv"), stringsAsFactors = TRUE)
+
+head(flood_data)
+
+```
+
+```{r}
+
+# Convert END_DATE from factor to character
+flood_data$END_DATE <- as.character(flood_data$END_DATE)
+
+flood_data$END_DATE <- as.Date(paste0(flood_data$END_DATE, "-01"), format="%Y-%m-%d")
+
+class(flood_data$END_DATE)
+
+```
+
+```{r plot flood duration vs month-year}
+
+ggplot(flood_data, aes(x = END_DATE, y = Duration, color = Duration)) +
+   geom_line() +
+  scale_color_gradient(low = "blue", high = "orange") +
+  scale_y_log10() +
+  labs(x = "Date", y = "Flood Duration (hours)", title = "Flood Duration in Louisiana (1996-2022)", color = "Duration")+
+  ylim(0, 800)
+
+```
+
+
+*Figure 2. Intended plot of spatial data depicting flood locations across Louisiana, scaled according to flood duration.*
+
+```{r libraries}
+# Load libraries
+
+library(sf)
+library(ggplot2)
+
+```
+
+```{r read in data}
+
+# Read flood location data from CSV file
+flood_data <- read.csv(file=here("./ProcessedData/FloodData.csv"), stringsAsFactors = TRUE)
+                       
+#Read in shp file for all states
+shapes<- st_read('./RawData/SpatialLA/tl_2012_us_state.shp')
+
+#Filter shp data for Louisiana
+la_shape<-shapes%>%
+  filter(STATEFP == 22)
+
+head(la_shape)
+                       
+```
+
+```{r remove NA}
+
+#Wrangle flood data
+flood_df<-flood_data%>%
+  na.omit(BEGIN_LAT, BEGIN_LON)%>%
+  select(BEGIN_LAT, BEGIN_LON, Duration)
+
+colnames(flood_df)<-c("lat", "long", "duration")
+
+head(flood_df)
+
+```
+
+```{r}
+
+# Convert flood data to sf object with long-lat coordinates
+flood_sf <- st_as_sf(flood_df, coords = c("long", "lat"), crs = st_crs(la_shape))
+
+head(flood_sf)
+
+```
+
+#Map of Louisiana
+```{r la plot}
+
+#Plot of LA outline
+la_plot<- ggplot() +
+geom_sf(data = la_shape, fill = "white", color = "black") +
+  theme_bw()
+
+la_plot
+
+```
+
+#Map of flood locations by duration
+```{r flood location plot}
+
+#Plot of flood locations by duration
+flood_locs<-ggplot()+
+  geom_sf(data = flood_sf, aes(color = duration)) +
+  labs(x = "Longitude", y = "Latitude", title = "Louisiana Floods by Duration (1996-2022)", color = "Flood Duration (hours)") +
+  theme_void()
+
+flood_locs
+
+```
+
+#Joined plot
+```{r intersection plot}
+
+ggplot() +
+  geom_sf(data = flood_sf, aes(color = duration)) +
+  geom_sf(data = la_shape, fill = "white", color = "black") +
+  labs(x = "Longitude", y = "Latitude", title = "Louisiana Floods by Duration (1996-2022)", color = "Flood Duration (hours)") +
+  theme_void()
+
+```
 
 \newpage
 
@@ -55,4 +201,4 @@
 \newpage
 
 # References
-<add references here if relevant, otherwise delete this section> 
+1. Emanuel, K. Increasing destructiveness of tropical cyclones over the past 30 years. Nature 436, 686–688 (2005). https://doi.org/10.1038/nature03906
