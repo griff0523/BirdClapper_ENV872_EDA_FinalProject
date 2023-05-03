@@ -13,8 +13,16 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r libraries}
 # Load libraries
 
+library(tidyverse)
 library(sf)
+library(leaflet)
+library(mapview)
+library(here)
+library(tidyverse, quietly = TRUE)
+library(lubridate)
 library(ggplot2)
+library(ggthemes)
+library(dplyr)
 
 ```
 
@@ -29,6 +37,9 @@ shapes<- st_read('./RawData/SpatialLA/tl_2012_us_state.shp')
 #Filter shp data for Louisiana
 la_shape<-shapes%>%
   filter(STATEFP == 22)
+
+#Setting projection
+la_shape<-st_transform(la_shape, crs=26915)
 
 head(la_shape)
                        
@@ -50,7 +61,7 @@ head(flood_df)
 ```{r}
 
 # Convert flood data to sf object with long-lat coordinates
-flood_sf <- st_as_sf(flood_df, coords = c("long", "lat"), crs = st_crs(la_shape))
+flood_sf <- st_as_sf(flood_df, coords = c("long", "lat"), crs = 26915)
 
 head(flood_sf)
 
@@ -85,8 +96,8 @@ flood_locs
 ```{r intersection plot}
 
 ggplot() +
-  geom_sf(data = flood_sf, aes(color = duration)) +
-  geom_sf(data = la_shape, fill = "white", color = "black") +
+  geom_sf(data = la_shape)+
+    geom_sf(data = flood_sf, aes(color = duration)) +
   labs(x = "Longitude", y = "Latitude", title = "Louisiana Floods by Duration (1996-2022)", color = "Flood Duration (hours)") +
   theme_void()
 
