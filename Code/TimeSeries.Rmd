@@ -1,0 +1,61 @@
+```{r}
+#Loading packages
+library(knitr)
+library(tidyverse)
+library(lubridate)
+library(here)
+library(cowplot)
+library(ggplot2)
+library(ggthemes)
+library(zoo)
+library(trend)
+library(Kendall)
+
+#Setting working directory
+here
+getwd()
+
+```
+```{r}
+
+#Loading CSV file
+FloodData <- read.csv("~/FinalProject/ProcessedData/FloodData.csv", stringsAsFactors = TRUE)
+
+```
+
+
+
+
+```{r}
+#Creating all months
+Months <- as.data.frame(x= seq(as.Date("1998/1/1"), as.Date("2022/12/31"), by = "month")) %>%
+  rename("Date" = 1)
+
+#Organizing by months 
+FloodData.monthly <- FloodData %>% 
+  group_by(Year, Month) %>%
+  summarise(Duration.Mean = mean(Duration))
+           
+FloodData.monthly <- FloodData.monthly %>%
+  mutate(Date = as.Date(as.yearmon(paste(Year, Month), "%Y %m")))
+
+#Left join
+FloodData.all.months <- left_join(x=Months, y=FloodData.monthly)
+
+#Interpolation
+FloodData_Interp <- FloodData.all.months %>%
+  mutate(Duration.Mean = na.approx(Duration.Mean, na.rm=FALSE))
+
+```
+
+```{r}
+#Creating time series object
+FloodData.ts <- 
+  ts(FloodData_Interp$Duration.Mean, start = c(1998,1), end = c(2022,12), frequency=12)
+#Decomposing monthly flood data
+FloodData.ts_decomposed <- stl(FloodData.ts, s.window="periodic")
+
+#Plotting decomoposed flood data
+plot(FloodData.ts_decomposed)
+```
+
