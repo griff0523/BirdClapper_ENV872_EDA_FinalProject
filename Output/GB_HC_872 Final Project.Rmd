@@ -1,20 +1,63 @@
+---
+title: "Time Series Analysis of Flooding Duration in Louisiana"
+author: "Haley Clapper and Griffin Bird"
+date: "May 3rd, 2023"
+
+output: pdf_document
+geometry: margin=2.54cm
+---
+
+Github Repository: https://github.com/griff0523/BirdClapper_ENV872_EDA_FinalProject
+
 \newpage
 \tableofcontents 
 \newpage
-\listoftables 
-\newpage
-\listoffigures 
-\newpage
 
 ```{r setup, include=FALSE}
-# Set your working directory
-
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 # Load your packages
+library(sf)
+library(leaflet)
+library(mapview)
+library(lubridate)
+library(ggplot2)
+library(ggthemes)
+library(dplyr)
+library(knitr)
+library(tidyverse)
+library(here)
+library(cowplot)
+library(zoo)
+library(trend)
+library(Kendall)
+library(ggfortify)
+library(gt)
+library(formatR)
+library(rempsyc)
+
+
+knitr::opts_chunk$set(tidy.opts=list(width.cutoff=80), tidy=TRUE)
+
+# Set your working directory
+here()
 
 # Set your ggplot theme
+mytheme <- theme_wsj() + theme(plot.title = element_text(hjust = 0.5), 
+   panel.grid.minor = element_line(color = 2,
+   size = 0.25,
+   linetype = 1),
+  legend.position = "bottom", 
+  axis.text = element_text(face="plain", size = 12),
+  axis.title=element_text(size=14),
+  title = element_text(size=12))
+
+theme_set(mytheme)
+
 
 # Load your datasets
+FloodData <- read.csv(file=here("./ProcessedData/FloodData.csv"), stringsAsFactors = TRUE)
 
+shapes<- st_read('~/FinalProject/RawData/SpatialLA/tl_2012_us_state.shp')
 ```
 
 
@@ -22,25 +65,41 @@
 
 **Background**
 
-The Gulf Coast of the United States is comprised of five states: Texas, Louisiana, Mississippi, Alabama, and Florida. This region is one of the most vulnerable in the nation to extreme weather, mainly hurricanes and other major storms. For most of the Gulf Coast, the land is low-lying and, in some cases, subsiding, such as in the case of New Orleans (source). Thus, events like hurricanes and even less extreme events have led to devastating flooding and significant economic losses for the region, including property damage and destruction. 
+The Gulf Coast of the United States is comprised of five states: Texas, Louisiana, Mississippi, Alabama, and Florida. This region is one of the most vulnerable in the nation to extreme weather, mainly hurricanes and other major storms. For most of the Gulf Coast, the land is low-lying and, in some cases, subsiding, such as in the case of New Orleans (. Thus, events like hurricanes and even less extreme events have led to devastating flooding and significant economic losses for the region, including property damage and destruction. 
 
 *Temporal Effects of Climate Change*
 
-As climate change progresses, average global temperatures, including sea temperatures, are rising. It is likely that these conditions set the stage for storms of increasing magnitude as conditions worsen. One study on hurricane climate attribution developed a power dissipation index (PDI) to measure the rate at which storms’ power dissipates (i.e., loses strength). Overall, the study found that increasing sea surface temperature (SST) is highly associated with slower power dissipation, leading to the more frequent landfall of stronger storms (Emanuel, 2005). The overall frequency of these storms is not necessarily increasing due to the effects of climate change, rather the frequency of high-magnitude storms is increasing. This poses a significant risk for Gulf states, and as they prepare for and adapt to these evolving storm patterns, it is important for them to consider how relationships between flood events and economic losses are also evolving.
+As climate change progresses, average global temperatures, including sea temperatures, are rising. It is likely that these conditions set the stage for storms of increasing magnitude as conditions worsen. One study on hurricane climate attribution developed a power dissipation index (PDI) to measure the rate at which storms’ power dissipates (i.e., loses strength). Overall, the study found that increasing sea surface temperature (SST) is highly associated with slower power dissipation, leading to the more frequent landfall of stronger storms (Emanuel, 2005). The overall frequency of these storms is not necessarily increasing due to the effects of climate change, rather the frequency of high-magnitude storms is increasing. This poses a significant risk for Gulf states, and as they prepare for and adapt to these evolving storm patterns, it is important for them to consider how relationships between stronger storms and changes in flood duration are evolving.
 
 *Main Research Questions*
 
 In our study, we seek to uncover temporal relationships between flood events along the Gulf Coast and resulting property damage. For this study, we will evaluate flood events and associated property damage in the period of 1996-2022 in the Gulf Coast region. With these parameters, our main research questions are:
 
-1. Has there been an average increase in flood duration in Louisiana from 1996 - 2022?
-2. Has there been an average increase in flood-related property damage in Louisiana between 1996 - 2022?
+1. Has there been an average increase in average monthly flood duration in Louisiana from 1996 - 2022?
+1a. Does this trend still appear when accounting for seasonality?
 
 
 \newpage
 
 # Dataset Information
+*Table 1. Data Information.*
+```{r Dataset information, message=FALSE, warning=FALSE, echo=FALSE}
+#Creating table describing dataset
+DatasetInfo <- data.frame(Detail=c('Data Source', 'Retrieved From', 'Date Range'), 
+                          Description=c('NOAA Storm Events Database', 'https://www.ncdc.noaa.gov/stormevents/', '1950 - 2023'))
 
+Dataset_table <- DatasetInfo %>%
+  gt() %>%
+  tab_options(table.width=pct(95)) %>%
+  cols_width(everything() ~px(120))
+  
+Dataset_table
+```
 
+Flood data was taken from the National Oceanic and Atmospheric Administration's (NOAA) Storm Events Database. We selected data on floods and flash floods in Louisiana from 1990-2022. These county-level data include each flood event's start and end coordinates, start and end date and time, what caused the flood, numbers of deaths and injuries attributed to the flood, and monetary value of property damage caused by the flood. This data is supplied to NOAA by the National Weather Service (NWS). NWS gathers information from a variety of different sources: newspapers, emergency management officials, the insurance industry, law enforcement officials, the general public, etc. 
+
+# Data Wrangling
+Louisiana flood and flash flood data were downloaded from NOAA in five year increments, as the database limits how many events can be retrieved with one query, and these spreadsheets were uploaded to a raw data folder. The raw data spreadsheets were merged together in R and columns not relevant to the analysis were excluded. To calculate flood event duration start date and start time columns were combined into a single column, the same was done with the end date and end time columns. These date-time columns were formatted to be recognized as date classes.
 
 \newpage
 
@@ -51,101 +110,46 @@ For exploratory analysis of the flood data, we created two plots. First, a plot 
 However, due to discrepancies between the flood data and shapefile of Louisiana, the coordinates in each did not successfully layer together to create this plot. Instead, we include 1) a map of Louisiana using the shapefile, 2) a map plotting flood location, scaled according to duration, and finally 3) the code we attempted to layer the two.
 
 *Figure 1. Flood duration over time in Louisiana (1996-2022).*
-```{r libraries}
 
-library(tidyverse)
-library(lubridate)
-library(here)
-library(ggplot2)
-
-getwd()
-
-```
-
-```{r import flood data}
-
-#Assign a variable to the processed data folder location
-processed_data = "Output/ProcessedData_KEY"
-
-flood_data <- read.csv(file=here("./ProcessedData/FloodData.csv"), stringsAsFactors = TRUE)
-
-head(flood_data)
-
-```
-
-```{r}
+```{r Prepping End Date, include=FALSE, echo=FALSE}
 
 # Convert END_DATE from factor to character
-flood_data$END_DATE <- as.character(flood_data$END_DATE)
+FloodData$END_DATE <- as.character(FloodData$END_DATE)
 
-flood_data$END_DATE <- as.Date(paste0(flood_data$END_DATE, "-01"), format="%Y-%m-%d")
-
-class(flood_data$END_DATE)
-
+FloodData$END_DATE <- as.Date(paste0(FloodData$END_DATE, "-01"), format="%Y-%m-%d")
 ```
 
-```{r plot flood duration vs month-year}
+```{r plot flood duration vs month-year, message=FALSE, warning=FALSE, echo=FALSE}
 
-ggplot(flood_data, aes(x = END_DATE, y = Duration, color = Duration)) +
+ggplot(FloodData, aes(x = END_DATE, y = Duration)) +
    geom_line() +
-  scale_color_gradient(low = "blue", high = "orange") +
-  scale_y_log10() +
-  labs(x = "Date", y = "Flood Duration (hours)", title = "Flood Duration in Louisiana (1996-2022)", color = "Duration")+
-  ylim(0, 800)
+  labs(x = "Date", y = "Flood Duration (hours)", title = "Flood Duration in Louisiana (1996-2022)")+
+  ylim(0, 50)
 
 ```
 
-
+\newpage
 *Figure 2. Intended plot of spatial data depicting flood locations across Louisiana, scaled according to flood duration.*
 
-```{r libraries}
-# Load libraries
-
-library(sf)
-library(ggplot2)
-
-```
-
-```{r read in data}
-
-# Read flood location data from CSV file
-flood_data <- read.csv(file=here("./ProcessedData/FloodData.csv"), stringsAsFactors = TRUE)
-                       
-#Read in shp file for all states
-shapes<- st_read('./RawData/SpatialLA/tl_2012_us_state.shp')
-
+```{r Prepping shapefile, message=FALSE, warning=FALSE, echo=FALSE}
 #Filter shp data for Louisiana
 la_shape<-shapes%>%
   filter(STATEFP == 22)
 
-head(la_shape)
-                       
-```
-
-```{r remove NA}
-
 #Wrangle flood data
-flood_df<-flood_data%>%
+flood_df<-FloodData%>%
   na.omit(BEGIN_LAT, BEGIN_LON)%>%
   select(BEGIN_LAT, BEGIN_LON, Duration)
 
+#Setting column names
 colnames(flood_df)<-c("lat", "long", "duration")
-
-head(flood_df)
-
-```
-
-```{r}
 
 # Convert flood data to sf object with long-lat coordinates
 flood_sf <- st_as_sf(flood_df, coords = c("long", "lat"), crs = st_crs(la_shape))
-
-head(flood_sf)
-
 ```
 
-#Map of Louisiana
-```{r la plot}
+# Map of Louisiana
+```{r la plot, message=FALSE, warning=FALSE, echo=FALSE}
 
 #Plot of LA outline
 la_plot<- ggplot() +
@@ -156,8 +160,8 @@ la_plot
 
 ```
 
-#Map of flood locations by duration
-```{r flood location plot}
+# Map of flood locations by duration
+```{r flood location plot, message=FALSE, warning=FALSE, echo=FALSE}
 
 #Plot of flood locations by duration
 flood_locs<-ggplot()+
@@ -169,8 +173,8 @@ flood_locs
 
 ```
 
-#Joined plot
-```{r intersection plot}
+# Joined plot
+```{r intersection plot, message=FALSE, warning=FALSE, echo=FALSE}
 
 ggplot() +
   geom_sf(data = flood_sf, aes(color = duration)) +
@@ -178,27 +182,119 @@ ggplot() +
   labs(x = "Longitude", y = "Latitude", title = "Louisiana Floods by Duration (1996-2022)", color = "Flood Duration (hours)") +
   theme_void()
 
+geom_sf()
 ```
 
 \newpage
 
-# Analysis
+# Time Series Analysis
 
+```{r Processing time series object from creation through decomposition, include=FALSE, echo=FALSE}
+#Creating all months
+Months <- as.data.frame(x= seq(as.Date("1998/1/1"), as.Date("2022/12/31"), by = "month")) %>%
+  rename("Date" = 1)
 
+#Organizing by months 
+FloodData.monthly <- FloodData %>% 
+  group_by(Year, Month) %>%
+  summarise(Duration.Mean = mean(Duration))
+           
+FloodData.monthly <- FloodData.monthly %>%
+  mutate(Date = as.Date(as.yearmon(paste(Year, Month), "%Y %m")))
 
-## Question 1: <insert specific question here and add additional subsections for additional questions below, if needed>
+#Left join
+FloodData.all.months <- left_join(x=Months, y=FloodData.monthly)
 
-## Question 2: 
+#Interpolation
+FloodData_Interp <- FloodData.all.months %>%
+  mutate(Duration.Mean = na.approx(Duration.Mean, na.rm=FALSE))
 
+#Creating time series object
+FloodData.ts <- 
+  ts(FloodData_Interp$Duration.Mean, start = c(1998,1), end = c(2022,12), frequency=12)
 
+#Decomposing monthly flood data
+FloodData.ts_decomposed <- stl(FloodData.ts, s.window="periodic")
 
+#Decomposing and subtracting seasonality from monthly flood duration time series
+FloodData.monthly.ts.Components <- as.data.frame(FloodData.ts_decomposed$time.series)
+
+FloodData.monthly.ts.nonseasonal <- (FloodData.ts - FloodData.monthly.ts.Components$seasonal)
+
+```
+
+To assess whether flood duration in Louisiana has increased in recent decades we performed a time series analysis on our data. For the sake of the time series analysis, average monthly flood duration was calculated. The fitted line in the plot below seems to indicate an upwards trend in flood duration over time.
+
+*Figure 3. Plot of average monthly flood duration in Louisiana 1996-2022.*
+
+```{r Plotting monthly average flood duration data,  echo=FALSE}
+
+#Plotting original monthly average flood duration data
+monthly.FloodData.plot <- ggplot(FloodData_Interp, aes(x = Date, y = Duration.Mean)) + 
+  labs(title = "Average Monthly Flood Duration in Louisiana",
+       x = "Year",
+       y = "Flood Duraton (Hours)",
+       caption = "Limited to events <= 100 hours to show detail") +
+   ylim(c(0, 100)) +
+  geom_smooth(method = lm, color = "black") +
+  geom_line()
+
+print(monthly.FloodData.plot)
+
+```
+A linear interpolation was used to generate average monthly flood duration values for any months that lacked flood events. This dataframe was converted into a time series object and decomposed. The plot below of the decomposed flood duration time series indicates that seasonality is present in the data.
+
+\newpage
+
+*Figure 4. Decomposed Components of Average Monthly Flood Duration for Louisiana.*
+
+```{r Plotting decomposed flood data, echo=FALSE}
+#Plotting decomoposed flood data
+plot(FloodData.ts_decomposed)
+```
+Thus, a seasonal Mann Kendall test was performed to discern whether a trend is present in the data.
+
+```{r SMK, echo=FALSE}
+#Running seasonal Mann Kendall test
+smk.test(FloodData.ts)
+```
+The results of the Seasonal Mann Kendall test allow us to reject the null hypothesis, indicating that there is a trend in the monthly flood duration time series data (z = -2.1714, p-value = 0.0299). 
+
+To investigate further, seasonality was subtracted from the time series object to create a non-seasonal version of the flood duration data. As you can see in the plot below, the upwards trend that was visible in the seasonal flood duration data seems to have diminished.
+
+\newpage
+
+*Figure 5. Plot of non-seasonal average monthly flood duration in Louisiana 1996-2022.*
+
+```{r Plotting monthly average flood duration data minus seasonality, echo=FALSE}
+#Generating non-seasonal plot
+autoplot(FloodData.monthly.ts.nonseasonal) + 
+  labs(title = "Nonseasonal Average Monthly Flood Duration in Louisiana",
+       x = "Year",
+       y = "Flood Duraton (Hours)",
+       caption = "Limited to events <= 100 hours to show detail") +
+   ylim(c(0, 100))
+
+```
+
+A non-seasonal Mann Kendall test was performed. The test results indicate that we cannot reject the null hypothesis, that there is no trend in the data (tau = 0.00618, 2-sided pvalue =0.8737).
+
+```{r Non-seasonal mann kendall, echo=FALSE}
+
+#Mann Kendall test on non-seasonal data
+MannKendall(FloodData.monthly.ts.nonseasonal)  
+
+```
 
 \newpage
 
 # Summary and Conclusions
 
+The results of our analysis are inconclusive. Graphing the average monthly flood duration in Louisiana illustrated an upwards trend, and a seasonal Mann Kendall test confirmed this. However, when seasonality was removed from the data we were unable to reject the null hypothesis. We cannot assert that there is a trend in average flood duration in Louisiana from 1996 - 2022 independent of seasonality. 
+
+There are many areas of this study upon which future reaserchers could improve. Perhaps most importantly, utilizing a more reliable data source could yield different results. NOAA's storm events database is not exhaustive, and years before 2000 have much more spotty and unreliable data. Moreover, this study analyzed flood duration data for a short time period. It's possible that a trend won't be revealed unless a longer time period is used. 
 
 \newpage
 
 # References
-1. Emanuel, K. Increasing destructiveness of tropical cyclones over the past 30 years. Nature 436, 686–688 (2005). https://doi.org/10.1038/nature03906
+1. Emanuel, K. Increasing destructiveness of tropical cyclones over the past 30 years. Nature 436, 686–688 (2005). https://doi.org/10.1038/nature03906
