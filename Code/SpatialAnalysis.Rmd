@@ -41,7 +41,7 @@ flood_df<-flood_data%>%
   na.omit(BEGIN_LAT, BEGIN_LON)%>%
   select(BEGIN_LAT, BEGIN_LON, Duration)
 
-colnames(flood_df)<-c("latitude", "longitude", "duration")
+colnames(flood_df)<-c("lat", "long", "duration")
 
 head(flood_df)
 
@@ -50,12 +50,13 @@ head(flood_df)
 ```{r}
 
 # Convert flood data to sf object with long-lat coordinates
-flood_sf <- st_as_sf(flood_df, coords = c("longitude", "latitude"), crs = st_crs(la_shape))
+flood_sf <- st_as_sf(flood_df, coords = c("long", "lat"), crs = st_crs(la_shape))
 
 head(flood_sf)
 
 ```
 
+#Map of Louisiana
 ```{r la plot}
 
 #Plot of LA outline
@@ -67,6 +68,7 @@ la_plot
 
 ```
 
+#Map of flood locations by duration
 ```{r flood location plot}
 
 #Plot of flood locations by duration
@@ -79,4 +81,26 @@ flood_locs
 
 ```
 
+#This is the plot that shows up weird
+```{r intersection plot}
 
+ggplot() +
+  geom_sf(data = flood_sf, aes(color = duration)) +
+  geom_sf(data = la_shape, fill = "white", color = "black") +
+  labs(x = "Longitude", y = "Latitude", title = "Louisiana Floods by Duration (1996-2022)", color = "Flood Duration (hours)") +
+  theme_void()
+
+```
+
+#Ignore this plot
+```{r}
+
+la_plot <- ggplot() +
+  geom_sf(data = la_shape, fill = "white", color = "black") +
+  geom_sf(data = flood_sf, aes(color = duration)) +
+  labs(x = "Longitude", y = "Latitude", title = "Louisiana Floods by Duration (1996-2022)", color = "Flood Duration (hours)") +
+  theme_void()
+
+la_plot
+
+```
